@@ -3,8 +3,8 @@ package top.withlevi.aop;
 import top.withlevi.annotation.AuthCheck;
 import top.withlevi.common.ErrorCode;
 import top.withlevi.exception.BusinessException;
-import top.withlevi.service.UserService;
 import top.withlevi.model.entity.User;
+import top.withlevi.service.UserService;
 import top.withlevi.model.enums.UserRoleEnum;
 
 import javax.annotation.Resource;

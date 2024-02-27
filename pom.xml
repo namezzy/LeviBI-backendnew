@@ -9,8 +9,8 @@
         <version>2.7.2</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.yupi</groupId>
-    <artifactId>springboot-init</artifactId>
+    <groupId>top.withlevi</groupId>
+    <artifactId>levibi-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>LeviBI-backend</name>
     <properties>

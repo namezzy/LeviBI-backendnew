@@ -1,6 +1,7 @@
 package top.withlevi.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import top.withlevi.model.entity.User;
 import top.withlevi.model.vo.PostVO;
 import top.withlevi.common.BaseResponse;
 import top.withlevi.common.ErrorCode;
@@ -11,7 +12,6 @@ import top.withlevi.model.dto.post.PostQueryRequest;
 import top.withlevi.model.dto.postfavour.PostFavourAddRequest;
 import top.withlevi.model.dto.postfavour.PostFavourQueryRequest;
 import top.withlevi.model.entity.Post;
-import top.withlevi.model.entity.User;
 import top.withlevi.service.PostFavourService;
 import top.withlevi.service.PostService;
 import top.withlevi.service.UserService;

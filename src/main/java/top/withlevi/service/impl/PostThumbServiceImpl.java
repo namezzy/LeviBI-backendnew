@@ -5,11 +5,11 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import top.withlevi.common.ErrorCode;
 import top.withlevi.exception.BusinessException;
 import top.withlevi.mapper.PostThumbMapper;
+import top.withlevi.model.entity.User;
 import top.withlevi.service.PostService;
 import top.withlevi.service.PostThumbService;
 import top.withlevi.model.entity.Post;
 import top.withlevi.model.entity.PostThumb;
-import top.withlevi.model.entity.User;
 
 import javax.annotation.Resource;
 import org.springframework.aop.framework.AopContext;

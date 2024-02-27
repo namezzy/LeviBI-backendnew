@@ -1,6 +1,7 @@
 package top.withlevi.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import top.withlevi.model.entity.User;
 import top.withlevi.model.vo.LoginUserVO;
 import top.withlevi.model.vo.UserVO;
 import top.withlevi.annotation.AuthCheck;
@@ -18,7 +19,6 @@ import top.withlevi.model.dto.user.UserQueryRequest;
 import top.withlevi.model.dto.user.UserRegisterRequest;
 import top.withlevi.model.dto.user.UserUpdateMyRequest;
 import top.withlevi.model.dto.user.UserUpdateRequest;
-import top.withlevi.model.entity.User;
 import top.withlevi.service.UserService;
 
 import java.util.List;
@@ -100,29 +100,6 @@ public class UserController {
         }
         LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, request);
         return ResultUtils.success(loginUserVO);
-    }
-
-    /**
-     * 用户登录（微信开放平台）
-     */
-    @GetMapping("/login/wx_open")
-    public BaseResponse<LoginUserVO> userLoginByWxOpen(HttpServletRequest request, HttpServletResponse response,
-            @RequestParam("code") String code) {
-        WxOAuth2AccessToken accessToken;
-        try {
-            WxMpService wxService = wxOpenConfig.getWxMpService();
-            accessToken = wxService.getOAuth2Service().getAccessToken(code);
-            WxOAuth2UserInfo userInfo = wxService.getOAuth2Service().getUserInfo(accessToken, code);
-            String unionId = userInfo.getUnionId();
-            String mpOpenId = userInfo.getOpenid();
-            if (StringUtils.isAnyBlank(unionId, mpOpenId)) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "登录失败，系统错误");
-            }
-            return ResultUtils.success(userService.userLoginByMpOpen(userInfo, request));
-        } catch (Exception e) {
-            log.error("userLoginByWxOpen error", e);
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "登录失败，系统错误");
-        }
     }
 
     /**
