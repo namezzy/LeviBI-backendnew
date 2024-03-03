@@ -17,7 +17,7 @@ class AiManagerTest {
 
     @Test
     void doChat() {
-        String answer = aiManager.doChat("苹果手机");
+        String answer = aiManager.doChat("摇滚");
         System.out.println(answer);
 
     }
