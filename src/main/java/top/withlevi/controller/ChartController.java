@@ -21,6 +21,7 @@ import top.withlevi.manager.AiManager;
 import top.withlevi.model.dto.chart.*;
 import top.withlevi.model.entity.Chart;
 import top.withlevi.model.entity.User;
+import top.withlevi.model.vo.BiResponse;
 import top.withlevi.service.ChartService;
 import top.withlevi.service.UserService;
 import top.withlevi.utils.ExcelUtils;
@@ -232,7 +233,7 @@ public class ChartController {
      * @return
      */
     @PostMapping("/gen")
-    public BaseResponse<String> GenChartByAI(@RequestPart("file") MultipartFile multipartFile, GenChartByAIRequest genChartByAIRequest, HttpServletRequest request) {
+    public BaseResponse<BiResponse> GenChartByAI(@RequestPart("file") MultipartFile multipartFile, GenChartByAIRequest genChartByAIRequest, HttpServletRequest request) {
 
         String name = genChartByAIRequest.getName();
         String goal = genChartByAIRequest.getGoal();
@@ -243,54 +244,63 @@ public class ChartController {
         ThrowUtils.throwIf(StringUtils.isBlank(goal), ErrorCode.PARAMS_ERROR, "目标为空");
         ThrowUtils.throwIf(StringUtils.isBlank(name) && name.length() > 100, ErrorCode.PARAMS_ERROR, "名称过长");
 
+        // 校验登录账户
+        User loginUser = userService.getLoginUser(request);
+
+
         // BI模型ID
         long biModelId = 1761663810785464321L;
 
         // 构造用户输入
         StringBuilder userInput = new StringBuilder();
         userInput.append("分析需求: ").append("\n");
-        userInput.append(goal).append("\n");
+
+
+        // 拼接分析目标
+        String userGoal = goal;
+        if (StringUtils.isNotBlank(chartType)) {
+            userGoal += ",请使用" + chartType;
+        }
+        userInput.append(userGoal).append("\n");
         userInput.append("原始数据: ").append("\n");
 
         // 压缩后的数据
-        String result = ExcelUtils.excelToCsv(multipartFile);
-        userInput.append(result).append("\n");
+        String csvData = ExcelUtils.excelToCsv(multipartFile);
+        userInput.append(csvData).append("\n");
 
         String biResult = aiManager.doChat(biModelId, userInput.toString());
 
         String[] splits = biResult.split("【【【【【");
 
+        if (splits.length < 3) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "AI生成错误");
+        }
+
+        String genChart = splits[1].trim();
+        String genResult = splits[2].trim();
+
+        // 插入到数据库
+        Chart chart = new Chart();
+        chart.setName(name);
+        chart.setGoal(genChart);
+        chart.setChartData(csvData);
+        chart.setChartType(chartType);
+        chart.setGenChart(genChart);
+        chart.setGenResult(genResult);
+        chart.setUserId(loginUser.getId());
+        boolean saveResult = chartService.save(chart);
+        ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败！");
+
+
+        BiResponse biResponse = new BiResponse();
+        biResponse.setChartId(chart.getId());
+        biResponse.setGenChart(genChart);
+        biResponse.setGenResult(genResult);
 
 
 
-        return ResultUtils.success(userInput.toString());
-
-
-//        User loginUser = userService.getLoginUser(request);
-//        // 文件目录：根据业务、用户来划分
-//        String uuid = RandomStringUtils.randomAlphanumeric(8);
-//        String filename = uuid + "-" + multipartFile.getOriginalFilename();
-//        File file = null;
-//        try {
-//            // 上传文件
-//
-//            // 返回可访问地址
-//
-//            return ResultUtils.success("");
-//        } catch (Exception e) {
-//            // log.error("file upload error, filepath = " + filepath, e);
-//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
-//        } finally {
-//            if (file != null) {
-//                // 删除临时文件
-//                boolean delete = file.delete();
-//                if (!delete) {
-//                    // log.error("file delete error, filepath = {}", filepath);
-//                }
-//            }
-//        }
+        return ResultUtils.success(biResponse);
     }
-
 
     /**
      * 获取查询包装类
