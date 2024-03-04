@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
@@ -15,15 +14,13 @@ import top.withlevi.common.DeleteRequest;
 import top.withlevi.common.ErrorCode;
 import top.withlevi.common.ResultUtils;
 import top.withlevi.constant.CommonConstant;
-import top.withlevi.constant.FileConstant;
 import top.withlevi.constant.UserConstant;
 import top.withlevi.exception.BusinessException;
 import top.withlevi.exception.ThrowUtils;
+import top.withlevi.manager.AiManager;
 import top.withlevi.model.dto.chart.*;
-import top.withlevi.model.dto.file.UploadFileRequest;
 import top.withlevi.model.entity.Chart;
 import top.withlevi.model.entity.User;
-import top.withlevi.model.enums.FileUploadBizEnum;
 import top.withlevi.service.ChartService;
 import top.withlevi.service.UserService;
 import top.withlevi.utils.ExcelUtils;
@@ -31,7 +28,6 @@ import top.withlevi.utils.SqlUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.io.File;
 
 /**
  * 图表接口
@@ -46,6 +42,9 @@ public class ChartController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private AiManager aiManager;
 
     // region 增删改查
 
@@ -244,16 +243,26 @@ public class ChartController {
         ThrowUtils.throwIf(StringUtils.isBlank(goal), ErrorCode.PARAMS_ERROR, "目标为空");
         ThrowUtils.throwIf(StringUtils.isBlank(name) && name.length() > 100, ErrorCode.PARAMS_ERROR, "名称过长");
 
-        // 用户输入
+        // BI模型ID
+        long biModelId = 1761663810785464321L;
+
+        // 构造用户输入
         StringBuilder userInput = new StringBuilder();
-        userInput.append("我是一名数据分析师,接下来会给你我的分析目标和原始数据，请告诉我分析结论: ").append("\n");
-        userInput.append("分析目标: ").append(goal).append("\n");
+        userInput.append("分析需求: ").append("\n");
+        userInput.append(goal).append("\n");
+        userInput.append("原始数据: ").append("\n");
 
         // 压缩后的数据
-
-
         String result = ExcelUtils.excelToCsv(multipartFile);
-        userInput.append("数据: ").append(result).append("\n");
+        userInput.append(result).append("\n");
+
+        String biResult = aiManager.doChat(biModelId, userInput.toString());
+
+        String[] splits = biResult.split("【【【【【");
+
+
+
+
         return ResultUtils.success(userInput.toString());
 
 
