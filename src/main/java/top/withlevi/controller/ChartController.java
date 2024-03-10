@@ -282,7 +282,7 @@ public class ChartController {
         // 插入到数据库
         Chart chart = new Chart();
         chart.setName(name);
-        chart.setGoal(genChart);
+        chart.setGoal(goal);
         chart.setChartData(csvData);
         chart.setChartType(chartType);
         chart.setGenChart(genChart);
