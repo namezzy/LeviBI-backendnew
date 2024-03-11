@@ -31,6 +31,7 @@ public class RedisLimiterManager {
         RRateLimiter rateLimiter = redissonClient.getRateLimiter(key);
         rateLimiter.trySetRate(RateType.OVERALL, 2, 1, RateIntervalUnit.SECONDS);
 
+        // 每当一个操作来了后， 请求一个令牌
         boolean canOp = rateLimiter.tryAcquire(1);
         if (!canOp) {
 

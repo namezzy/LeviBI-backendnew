@@ -19,6 +19,7 @@ import top.withlevi.constant.UserConstant;
 import top.withlevi.exception.BusinessException;
 import top.withlevi.exception.ThrowUtils;
 import top.withlevi.manager.AiManager;
+import top.withlevi.manager.RedisLimiterManager;
 import top.withlevi.model.dto.chart.*;
 import top.withlevi.model.entity.Chart;
 import top.withlevi.model.entity.User;
@@ -49,6 +50,10 @@ public class ChartController {
 
     @Resource
     private AiManager aiManager;
+
+
+    @Resource
+    private RedisLimiterManager redisLimiterManager;
 
     // region 增删改查
 
@@ -266,15 +271,20 @@ public class ChartController {
 
         String suffix = FileUtil.getSuffix(originalFilename);
         // 定义合法的后缀列表
-        final List<String> validFileSuffixList = Arrays.asList("png", "jpg", "svg", "webp", "jpeg");
+        final List<String> validFileSuffixList = Arrays.asList("png", "jpg", "svg", "webp", "jpeg","xlsx");
         // 如果suffix的后缀不在List的范围内，抛出异常并提示文件后缀不符合
         ThrowUtils.throwIf(!validFileSuffixList.contains(suffix),ErrorCode.PARAMS_ERROR,"文件后缀不符合");
         // 校验登录账户
         User loginUser = userService.getLoginUser(request);
 
+        // 限流判断 每个用户一个限流器
+        redisLimiterManager.doRateLimit("genChartByAI_" + loginUser.getId());
+
+
+
 
         // BI模型ID
-        long biModelId = 1761663810785464321L;
+        long biModelId = 1767318566975524866L;
 
         // 构造用户输入
         StringBuilder userInput = new StringBuilder();
