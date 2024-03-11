@@ -1,5 +1,6 @@
 package top.withlevi.controller;
 
+import cn.hutool.core.io.FileUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,8 @@ import top.withlevi.utils.SqlUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * 图表接口
@@ -244,6 +247,28 @@ public class ChartController {
         ThrowUtils.throwIf(StringUtils.isBlank(goal), ErrorCode.PARAMS_ERROR, "目标为空");
         ThrowUtils.throwIf(StringUtils.isBlank(name) && name.length() > 100, ErrorCode.PARAMS_ERROR, "名称过长");
 
+        /**
+         * 校验文件
+         * 首先用户先拿到请求的文件
+         * 取到原始文件大小
+         */
+        long size = multipartFile.getSize();
+        String originalFilename = multipartFile.getOriginalFilename();
+
+        final long ONE_MB = 1023 * 1024L;
+        // 判断文件大小，大于1兆 就抛出异常,并提示文件超过1M
+        ThrowUtils.throwIf(size > ONE_MB, ErrorCode.PARAMS_ERROR,"文件超过1MB");
+
+        /**
+         * 校验文件后缀
+         * 利用hutool的FileUtil工具类中的getSuffix方法获取文件后缀名
+         */
+
+        String suffix = FileUtil.getSuffix(originalFilename);
+        // 定义合法的后缀列表
+        final List<String> validFileSuffixList = Arrays.asList("png", "jpg", "svg", "webp", "jpeg");
+        // 如果suffix的后缀不在List的范围内，抛出异常并提示文件后缀不符合
+        ThrowUtils.throwIf(!validFileSuffixList.contains(suffix),ErrorCode.PARAMS_ERROR,"文件后缀不符合");
         // 校验登录账户
         User loginUser = userService.getLoginUser(request);
 
