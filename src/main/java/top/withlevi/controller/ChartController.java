@@ -284,7 +284,7 @@ public class ChartController {
 
 
         // BI模型ID
-        long biModelId = 1767318566975524866L;
+        long biModelId = 1761663810785464321L;
 
         // 构造用户输入
         StringBuilder userInput = new StringBuilder();
