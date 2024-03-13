@@ -33,6 +33,8 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * 图表接口
@@ -54,6 +56,11 @@ public class ChartController {
 
     @Resource
     private RedisLimiterManager redisLimiterManager;
+
+
+    @Resource
+    // 自动注入一个线程池的实例
+    private ThreadPoolExecutor threadPoolExecutor;
 
     // region 增删改查
 
@@ -303,16 +310,58 @@ public class ChartController {
         String csvData = ExcelUtils.excelToCsv(multipartFile);
         userInput.append(csvData).append("\n");
 
-        String biResult = aiManager.doChat(biModelId, userInput.toString());
+        // 插入到数据库
+        Chart chart = new Chart();
+        chart.setName(name);
+        chart.setGoal(goal);
+        chart.setChartData(csvData);
+        chart.setChartType(chartType);
+        chart.setStatus("wait");
+        chart.setUserId(loginUser.getId());
+        boolean saveResult = chartService.save(chart);
+        ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败！");
 
-        String[] splits = biResult.split("【【【【【");
+        // todo 建议处理任务队列满了之后抛异常的情况
+        CompletableFuture.runAsync(()-> {
 
-        if (splits.length < 3) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "AI生成错误");
-        }
+            Chart updateChart = new Chart();
+            updateChart.setId(chart.getId());
+            updateChart.setStatus("running");
+            boolean b = chartService.updateById(updateChart);
+            if (!b) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "图标状态更改失败");
+            }
+            // 调用AI
+            String biResult = aiManager.doChat(biModelId, userInput.toString());
 
-        String genChart = splits[1].trim();
-        String genResult = splits[2].trim();
+            String[] splits = biResult.split("【【【【【");
+
+            if (splits.length < 3) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "AI生成错误");
+            }
+
+            String genChart = splits[1].trim();
+            String genResult = splits[2].trim();
+
+            Chart updateChartResult = new Chart();
+            updateChartResult.setId(chart.getId());
+            updateChartResult.setGenChart(genChart);
+            updateChartResult.setGenResult(genResult);
+            updateChartResult.setStatus("succeed");
+            boolean updateResult = chartService.updateById(updateChart);
+            if (!updateResult) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "图标状态更改失败");
+            }
+        });
+
+        BiResponse biResponse = new BiResponse();
+        biResponse.setChartId(chart.getId());
+        return ResultUtils.success(biResponse);
+
+
+
+
+
 
         // 插入到数据库
         Chart chart = new Chart();
