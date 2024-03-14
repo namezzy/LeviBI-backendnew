@@ -30,7 +30,7 @@ public class FanoutConsumer {
     String queueName2 = "xiaoli_queue";
     channel2.queueDeclare(queueName2, true, false, false, null);
     channel2.queueBind(queueName2, EXCHANGE_NAME, "");
-    channel2.queueBind(queueName2, EXCHANGE_NAME, "");
+
 
       System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
       // 创建交付回调函数1
