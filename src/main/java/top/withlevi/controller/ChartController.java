@@ -10,6 +10,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import top.withlevi.annotation.AuthCheck;
+import top.withlevi.bizmq.BiMessageProducer;
 import top.withlevi.common.BaseResponse;
 import top.withlevi.common.DeleteRequest;
 import top.withlevi.common.ErrorCode;
@@ -62,7 +63,10 @@ public class ChartController {
     // 自动注入一个线程池的实例
     private ThreadPoolExecutor threadPoolExecutor;
 
-    // region 增删改查
+    @Resource
+    private BiMessageProducer biMessageProducer;
+
+
 
     /**
      * 创建
@@ -454,6 +458,97 @@ public class ChartController {
 
         BiResponse biResponse = new BiResponse();
         biResponse.setChartId(chart.getId());
+        return ResultUtils.success(biResponse);
+
+    }
+
+    /**
+     * 智能分析(异步消息队列)
+     *
+     * @param multipartFile
+     * @param genChartByAIRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/gen/async/mq")
+    public BaseResponse<BiResponse> GenChartByAIAsyncMq(@RequestPart("file") MultipartFile multipartFile, GenChartByAIRequest genChartByAIRequest, HttpServletRequest request) {
+
+        String name = genChartByAIRequest.getName();
+        String goal = genChartByAIRequest.getGoal();
+        String chartType = genChartByAIRequest.getChartType();
+
+
+        // 校验
+        ThrowUtils.throwIf(StringUtils.isBlank(goal), ErrorCode.PARAMS_ERROR, "目标为空");
+        ThrowUtils.throwIf(StringUtils.isBlank(name) && name.length() > 100, ErrorCode.PARAMS_ERROR, "名称过长");
+
+        /**
+         * 校验文件
+         * 首先用户先拿到请求的文件
+         * 取到原始文件大小
+         */
+        long size = multipartFile.getSize();
+        String originalFilename = multipartFile.getOriginalFilename();
+
+        final long ONE_MB = 1023 * 1024L;
+        // 判断文件大小，大于1兆 就抛出异常,并提示文件超过1M
+        ThrowUtils.throwIf(size > ONE_MB, ErrorCode.PARAMS_ERROR, "文件超过1MB");
+
+        /**
+         * 校验文件后缀
+         * 利用hutool的FileUtil工具类中的getSuffix方法获取文件后缀名
+         */
+
+        String suffix = FileUtil.getSuffix(originalFilename);
+        // 定义合法的后缀列表
+        final List<String> validFileSuffixList = Arrays.asList("xlsx", "xls");
+        // 如果suffix的后缀不在List的范围内，抛出异常并提示文件后缀不符合
+        ThrowUtils.throwIf(!validFileSuffixList.contains(suffix), ErrorCode.PARAMS_ERROR, "文件后缀不符合");
+        // 校验登录账户
+        User loginUser = userService.getLoginUser(request);
+
+        // 限流判断 每个用户一个限流器
+        redisLimiterManager.doRateLimit("genChartByAI_" + loginUser.getId());
+
+
+        // BI模型ID
+        long biModelId = CommonConstant.BI_MODEL_ID;
+
+        // 构造用户输入
+        StringBuilder userInput = new StringBuilder();
+        userInput.append("分析需求: ").append("\n");
+
+
+        // 拼接分析目标
+        String userGoal = goal;
+        if (StringUtils.isNotBlank(chartType)) {
+            userGoal += ",请使用" + chartType;
+        }
+        userInput.append(userGoal).append("\n");
+        userInput.append("原始数据: ").append("\n");
+
+        // 压缩后的数据
+        String csvData = ExcelUtils.excelToCsv(multipartFile);
+        userInput.append(csvData).append("\n");
+
+        // 插入到数据库
+        Chart chart = new Chart();
+        chart.setName(name);
+        chart.setGoal(goal);
+        chart.setChartData(csvData);
+        chart.setChartType(chartType);
+        chart.setStatus("wait");
+        chart.setUserId(loginUser.getId());
+        boolean saveResult = chartService.save(chart);
+        ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败！");
+        long newChartId = chart.getId();
+
+        // todo 建议处理任务队列满了之后抛异常的情况
+        biMessageProducer.sendMessage(String.valueOf(newChartId));
+
+
+        BiResponse biResponse = new BiResponse();
+        biResponse.setChartId(newChartId);
         return ResultUtils.success(biResponse);
 
     }
