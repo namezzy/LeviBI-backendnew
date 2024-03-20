@@ -1,0 +1,57 @@
+# 线上配置文件
+server:
+  port: 8101
+  servlet:
+    session:
+      cookie:
+        same-site: None
+        secure: true
+        name: "levibi"
+        max-age: 86400
+    context-path: /api
+spring:
+  # 数据库配置
+  # todo 需替换配置
+#  datasource:
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#    url: jdbc:mysql://43.138.11.203:20243/levi_bi
+#    username: root
+#    password: levi.zhao@2024
+  # Redis 配置
+  # todo 需替换配置
+#  redis:
+#    database: 6
+#    host: 43.138.11.203
+#    port: 6380
+#    timeout: 5000
+#    password: levizhao
+  # Elasticsearch 配置
+  # todo 需替换配置
+#  elasticsearch:
+#    uris: http://localhost:9200
+#    username: root
+#    password: 123456
+#  rabbitmq:
+#    addresses: 8.141.85.217
+#    port: 5672
+#    username: admin
+#    password: admin
+mybatis-plus:
+  configuration:
+    # 生产环境关闭日志
+    log-impl: ''
+# 接口文档配置
+#knife4j:
+#  enable: true
+#  openapi:
+#    title: "接口文档"
+#    version: 1.0
+#    group:
+#      default:
+#        api-rule: package
+#        api-rule-resources:
+#          - top.withlevi.controller
+#yuapi:
+#  client:
+#    access-key: k2rip0coso2l7xrpolibupcnuobptukx
+#    secret-key: 8s8y1tbbtrbk19pgj1rqymeilk6y3sh2
